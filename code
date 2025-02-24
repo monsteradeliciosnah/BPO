@@ -1,0 +1,56 @@
+import pandas as pd
+import networkx as nx
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+class BusinessProcessOptimizer:
+    def __init__(self, event_log_file):
+        self.event_log_file = event_log_file
+        self.event_log = None
+        self.process_graph = nx.DiGraph()
+
+    def load_event_log(self):
+        self.event_log = pd.read_csv(self.event_log_file, parse_dates=['timestamp'])
+        self.event_log.sort_values(by=['case_id', 'timestamp'], inplace=True)
+        print("Event log loaded successfully.")
+
+    def construct_process_graph(self):
+        for _, group in self.event_log.groupby('case_id'):
+            previous_activity = None
+            for _, row in group.iterrows():
+                activity = row['activity']
+                if previous_activity:
+                    self.process_graph.add_edge(previous_activity, activity, weight=1)
+                previous_activity = activity
+        print("Process graph constructed.")
+
+    def analyze_process_efficiency(self):
+        bottlenecks = {}
+        for node in self.process_graph.nodes:
+            successors = list(self.process_graph.successors(node))
+            if len(successors) > 1:
+                bottlenecks[node] = len(successors)
+        return bottlenecks
+
+    def visualize_process(self):
+        plt.figure(figsize=(12, 6))
+        pos = nx.spring_layout(self.process_graph)
+        nx.draw(self.process_graph, pos, with_labels=True, node_color='lightblue', edge_color='gray')
+        plt.title("Business Process Flow")
+        plt.show()
+
+    def run_analysis(self):
+        print("Loading event log...")
+        self.load_event_log()
+        print("Constructing process graph...")
+        self.construct_process_graph()
+        print("Analyzing process efficiency...")
+        bottlenecks = self.analyze_process_efficiency()
+        print("Bottlenecks detected:", bottlenecks)
+        print("Visualizing process flow...")
+        self.visualize_process()
+        print("Analysis complete!")
+
+if __name__ == "__main__":
+    optimizer = BusinessProcessOptimizer(event_log_file="event_log.csv")
+    optimizer.run_analysis()
